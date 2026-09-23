@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>1024 퍼즐 게임</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: pan-x pan-y;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: radial-gradient(circle at 50% 15%, #24283b 0%, #15161e 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .grid-board {
+      position: relative;
+      background: #1a1b26;
+      border: 3px solid #2f3549;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.05);
+    }
+
+    .cell-slot {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    /* Outer container controls position and sliding transform */
+    .tile {
+      position: absolute;
+      transition: transform 120ms cubic-bezier(0.2, 0.9, 0.3, 1);
+      z-index: 10;
+      will-change: transform;
+    }
+
+    /* Inner element controls animations (pop/scale) and background colors */
+    .tile-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+      transform: scale(1);
+    }
+
+    /* New tile appearance animation */
+    .tile-new .tile-inner {
+      animation: tilePopIn 160ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Merge pulse animation */
+    .tile-merged {
+      z-index: 20;
+    }
+    .tile-merged .tile-inner {
+      animation: mergePop 170ms ease-in-out forwards;
+    }
+
+    @keyframes tilePopIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes mergePop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.22); filter: brightness(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    .val-2    { background: #eee4da; color: #776e65; font-size: 2.3rem; }
+    .val-4    { background: #ede0c8; color: #776e65; font-size: 2.3rem; }
+    .val-8    { background: #f2b179; color: #f9f6f2; font-size: 2.3rem; }
+    .val-16   { background: #f59563; color: #f9f6f2; font-size: 2.05rem; }
+    .val-32   { background: #f67c5f; color: #f9f6f2; font-size: 2.05rem; }
+    .val-64   { background: #e95945; color: #f9f6f2; font-size: 2.05rem; }
+    .val-128  { background: #edcf72; color: #f9f6f2; font-size: 1.75rem; box-shadow: 0 0 15px rgba(237, 207, 114, 0.45); }
+    .val-256  { background: #edcc61; color: #f9f6f2; font-size: 1.75rem; box-shadow: 0 0 20px rgba(237, 204, 97, 0.55); }
+    .val-512  { background: #edc850; color: #f9f6f2; font-size: 1.75rem; box-shadow: 0 0 25px rgba(237, 200, 80, 0.65); }
+    .val-1024 { 
+      background: linear-gradient(135deg, #ffd32a, #ff9f1a, #eb4d4b); 
+      color: #ffffff; 
+      font-size: 1.45rem; 
+      border: 2px solid #fff2a3;
+      box-shadow: 0 0 30px rgba(255, 159, 26, 0.8), 0 0 50px rgba(235, 77, 75, 0.4); 
+    }
+    .val-2048 { 
+      background: linear-gradient(135deg, #a55eea, #4b7bec, #20bf6b); 
+      color: #ffffff; 
+      font-size: 1.45rem; 
+      box-shadow: 0 0 35px rgba(165, 94, 234, 0.8);
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-between text-slate-100 p-4 sm:p-6 min-h-screen">
+
+  <header class="w-full max-w-[440px] flex flex-col gap-3">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-4xl font-black tracking-tight bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 bg-clip-text text-transparent">1024</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold tracking-wider">OFFICIAL</span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1 font-semibold">2 + 2 = 4 ... 512 + 512 = 1024 달성!</p>
+      </div>
+
+      <!-- Live Score & Record Boards -->
+      <div class="flex gap-2">
+        <div class="bg-slate-800/90 border border-slate-700/70 rounded-xl px-3 py-1.5 text-center min-w-[76px] shadow-sm">
+          <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400">SCORE</span>
+          <span id="score-display" class="block text-lg font-black text-white">0</span>
+        </div>
+        <div class="bg-slate-800/90 border border-slate-700/70 rounded-xl px-3 py-1.5 text-center min-w-[76px] shadow-sm">
+          <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400">BEST</span>
+          <span id="best-score-display" class="block text-lg font-black text-amber-300">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Header Controls -->
+    <div class="flex items-center justify-between gap-2 mt-1">
+      <div class="flex items-center gap-2">
+        <button id="btn-undo" class="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700 transition" title="한 수 되돌리기 (Ctrl+Z)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 10h10a5 5 0 015 5v2m0 0l-4-4m4 4l4-4M3 10l4-4m-4 4l4 4"/></svg>
+          되돌리기
+        </button>
+        <button id="btn-sound" class="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition" title="효과음 켜기/끄기">
+          <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+          <svg id="icon-sound-off" class="w-4 h-4 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+        </button>
+      </div>
+
+      <button id="btn-restart" class="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-extrabold rounded-xl text-xs shadow-md transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        새 게임
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-[440px] my-auto flex flex-col items-center">
+    <div id="game-board-wrapper" class="relative w-full aspect-square p-3 sm:p-3.5 grid-board select-none">
+      <!-- 4x4 background slots -->
+      <div id="grid-background" class="w-full h-full grid grid-cols-4 grid-rows-4 gap-2.5 sm:gap-3">
+        <!-- 16 Static slots created via JS -->
+      </div>
+
+      <!-- Absolute Tile sliding layer -->
+      <div id="tile-container" class="absolute inset-3 sm:inset-3.5 pointer-events-none">
+        <!-- Dynamic tiles glide here -->
+      </div>
+
+      <!-- Victory / Game Over Overlay Modal -->
+      <div id="game-modal" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-6 text-center z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div id="modal-icon" class="text-5xl mb-2 animate-bounce">🏆</div>
+        <h2 id="modal-title" class="text-3xl font-black text-white tracking-tight mb-2">1024 완성!</h2>
+        <p id="modal-desc" class="text-slate-300 text-sm mb-6 max-w-xs leading-relaxed">축하합니다! 1024 타일을 성공적으로 만들었습니다.</p>
+        <div class="flex gap-3">
+          <button id="modal-btn-keep-going" class="hidden px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-sm font-bold border border-slate-700 transition">
+            계속 도전 (2048+)
+          </button>
+          <button id="modal-btn-action" class="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 rounded-xl text-sm font-extrabold shadow-lg transition">
+            다시 하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-col items-center gap-1.5 sm:hidden">
+      <button class="d-pad-btn p-3.5 bg-slate-800/80 active:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 shadow-sm" data-dir="up">
+        <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+      </button>
+      <div class="flex gap-3">
+        <button class="d-pad-btn p-3.5 bg-slate-800/80 active:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 shadow-sm" data-dir="left">
+          <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <button class="d-pad-btn p-3.5 bg-slate-800/80 active:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 shadow-sm" data-dir="down">
+          <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <button class="d-pad-btn p-3.5 bg-slate-800/80 active:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 shadow-sm" data-dir="right">
+          <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="w-full max-w-[440px] text-center text-xs text-slate-400 mt-2">
+    <p class="hidden sm:block">방향키 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">↑</kbd> <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">↓</kbd> <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">←</kbd> <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">→</kbd> 또는 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">W A S D</kbd></p>
+    <p class="sm:hidden">보드를 부드럽게 스와이프하거나 하단 방향 버튼을 터치하세요.</p>
+  </footer>
+
+  <script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      ensureContext() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.12) {
+        if (!this.enabled) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {
+          // Audio autoplay safety catch
+        }
+      }
+
+      slide() {
+        this.playTone(320, 'sine', 0.05, 0.05);
+      }
+
+      merge(val) {
+        const step = Math.min(10, Math.log2(val));
+        const freq = 220 + step * 85;
+        this.playTone(freq, 'triangle', 0.12, 0.16);
+      }
+
+      win() {
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.25, 0.2), idx * 100);
+        });
+      }
+
+      gameOver() {
+        const notes = [320, 280, 240, 200];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sawtooth', 0.2, 0.1), idx * 120);
+        });
+      }
+    }
+
+    class BoardState {
+      constructor(size = 4) {
+        this.size = size;
+        this.tiles = []; // Active tiles: { id, r, c, val, prevR, prevC, mergedIntoId }
+        this.tileCounter = 1;
+        this.score = 0;
+        this.bestScore = parseInt(localStorage.getItem('game1024_best') || '0', 10);
+        this.history = [];
+        this.hasWon = false;
+        this.keepPlaying = false;
+        this.isGameOver = false;
+      }
+
+      reset() {
+        this.tiles = [];
+        this.score = 0;
+        this.history = [];
+        this.hasWon = false;
+        this.keepPlaying = false;
+        this.isGameOver = false;
+
+        // Authentic 1024 begins with 2 initial tiles
+        this.spawnTile();
+        this.spawnTile();
+      }
+
+      getGrid() {
+        const grid = Array(this.size).fill(null).map(() => Array(this.size).fill(null));
+        for (const t of this.tiles) {
+          if (!t.toDelete) {
+            grid[t.r][t.c] = t;
+          }
+        }
+        return grid;
+      }
+
+      getEmptyCells() {
+        const grid = this.getGrid();
+        const empty = [];
+        for (let r = 0; r < this.size; r++) {
+          for (let c = 0; c < this.size; c++) {
+            if (!grid[r][c]) empty.push({ r, c });
+          }
+        }
+        return empty;
+      }
+
+      // Spawns 2 (90% chance) or 4 (10% chance)
+      spawnTile() {
+        const empty = this.getEmptyCells();
+        if (empty.length === 0) return null;
+        const cell = empty[Math.floor(Math.random() * empty.length)];
+        const val = Math.random() < 0.9 ? 2 : 4;
+        const tile = {
+          id: this.tileCounter++,
+          r: cell.r,
+          c: cell.c,
+          val: val,
+          isNew: true
+        };
+        this.tiles.push(tile);
+        return tile;
+      }
+
+      saveHistory() {
+        const snapshot = {
+          tiles: this.tiles.map(t => ({ id: t.id, r: t.r, c: t.c, val: t.val })),
+          score: this.score,
+          hasWon: this.hasWon,
+          keepPlaying: this.keepPlaying,
+          isGameOver: this.isGameOver
+        };
+        this.history.push(snapshot);
+        if (this.history.length > 15) this.history.shift();
+      }
+
+      undo() {
+        if (this.history.length === 0) return false;
+        const prev = this.history.pop();
+        this.tiles = prev.tiles.map(t => ({ ...t }));
+        this.score = prev.score;
+        this.hasWon = prev.hasWon;
+        this.keepPlaying = prev.keepPlaying;
+        this.isGameOver = prev.isGameOver;
+        return true;
+      }
+
+      // Core sliding algorithm: moves all tiles, calculates destination and merges
+      move(dir) {
+        const vectors = {
+          up:    { dr: -1, dc:  0 },
+          down:  { dr:  1, dc:  0 },
+          left:  { dr:  0, dc: -1 },
+          right: { dr:  0, dc:  1 }
+        };
+        const vec = vectors[dir];
+        if (!vec || this.isGameOver) return null;
+
+        const rowIndices = [0, 1, 2, 3];
+        const colIndices = [0, 1, 2, 3];
+        if (vec.dr === 1) rowIndices.reverse();
+        if (vec.dc === 1) colIndices.reverse();
+
+        const grid = this.getGrid();
+        let moved = false;
+        let scoreGain = 0;
+        let maxMergedVal = 0;
+
+        const mergedInStep = new Set();
+        const createdTiles = [];
+
+        // Save state before move
+        const currentSnapshot = {
+          tiles: this.tiles.map(t => ({ id: t.id, r: t.r, c: t.c, val: t.val })),
+          score: this.score,
+          hasWon: this.hasWon,
+          keepPlaying: this.keepPlaying,
+          isGameOver: this.isGameOver
+        };
+
+        for (const r of rowIndices) {
+          for (const c of colIndices) {
+            const tile = grid[r][c];
+            if (!tile) continue;
+
+            let curR = r;
+            let curC = c;
+            let nextR = curR + vec.dr;
+            let nextC = curC + vec.dc;
+
+            // Advance until obstacle or edge
+            while (
+              nextR >= 0 && nextR < this.size &&
+              nextC >= 0 && nextC < this.size &&
+              !grid[nextR][nextC]
+            ) {
+              curR = nextR;
+              curC = nextC;
+              nextR = curR + vec.dr;
+              nextC = curC + vec.dc;
+            }
+
+            // Check merge capability with adjacent tile
+            if (
+              nextR >= 0 && nextR < this.size &&
+              nextC >= 0 && nextC < this.size &&
+              grid[nextR][nextC] &&
+              grid[nextR][nextC].val === tile.val &&
+              !mergedInStep.has(grid[nextR][nextC].id)
+            ) {
+              const target = grid[nextR][nextC];
+              const newVal = tile.val * 2;
+
+              tile.r = nextR;
+              tile.c = nextC;
+              tile.toDelete = true;
+              target.toDelete = true;
+
+              grid[r][c] = null;
+              grid[nextR][nextC] = null;
+
+              mergedInStep.add(target.id);
+
+              const mergedTile = {
+                id: this.tileCounter++,
+                r: nextR,
+                c: nextC,
+                val: newVal,
+                isMerged: true
+              };
+              createdTiles.push(mergedTile);
+              grid[nextR][nextC] = mergedTile;
+
+              scoreGain += newVal;
+              if (newVal > maxMergedVal) maxMergedVal = newVal;
+              moved = true;
+            } else if (curR !== r || curC !== c) {
+              // Plain slide into empty space
+              grid[r][c] = null;
+              tile.r = curR;
+              tile.c = curC;
+              grid[curR][curC] = tile;
+              moved = true;
+            }
+          }
+        }
+
+        if (moved) {
+          this.history.push(currentSnapshot);
+          if (this.history.length > 15) this.history.shift();
+
+          return {
+            moved: true,
+            scoreGain,
+            maxMergedVal,
+            createdTiles
+          };
+        }
+
+        return null;
+      }
+
+      canMove() {
+        if (this.getEmptyCells().length > 0) return true;
+        const grid = this.getGrid();
+        for (let r = 0; r < this.size; r++) {
+          for (let c = 0; c < this.size; c++) {
+            const v = grid[r][c].val;
+            if (c < this.size - 1 && grid[r][c + 1] && grid[r][c + 1].val === v) return true;
+            if (r < this.size - 1 && grid[r + 1][c] && grid[r + 1][c].val === v) return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    const game = new BoardState(4);
+    const sound = new SoundEngine();
+
+    const scoreDisplay = document.getElementById('score-display');
+    const bestScoreDisplay = document.getElementById('best-score-display');
+    const tileContainer = document.getElementById('tile-container');
+    const gridBackground = document.getElementById('grid-background');
+    const gameModal = document.getElementById('game-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+    const modalIcon = document.getElementById('modal-icon');
+    const modalBtnAction = document.getElementById('modal-btn-action');
+    const modalBtnKeepGoing = document.getElementById('modal-btn-keep-going');
+    const btnUndo = document.getElementById('btn-undo');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnSound = document.getElementById('btn-sound');
+    const iconSoundOn = document.getElementById('icon-sound-on');
+    const iconSoundOff = document.getElementById('icon-sound-off');
+
+    let isSlidingAnimation = false;
+
+    // Create 16 background grid slots
+    function initGridSlots() {
+      gridBackground.innerHTML = '';
+      for (let i = 0; i < 16; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'cell-slot w-full h-full';
+        gridBackground.appendChild(slot);
+      }
+    }
+
+    // Precise coordinate metric matching
+    function getCellMetrics(r, c) {
+      const slot = gridBackground.children[r * 4 + c];
+      const boardRect = tileContainer.getBoundingClientRect();
+      const slotRect = slot.getBoundingClientRect();
+      return {
+        x: Math.round(slotRect.left - boardRect.left),
+        y: Math.round(slotRect.top - boardRect.top),
+        size: Math.round(slotRect.width)
+      };
+    }
+
+    function renderTileNode(tile) {
+      const outer = document.createElement('div');
+      outer.id = `tile-${tile.id}`;
+      outer.className = 'tile';
+
+      const metrics = getCellMetrics(tile.r, tile.c);
+      outer.style.width = `${metrics.size}px`;
+      outer.style.height = `${metrics.size}px`;
+      outer.style.transform = `translate3d(${metrics.x}px, ${metrics.y}px, 0)`;
+
+      const inner = document.createElement('div');
+      inner.className = `tile-inner val-${tile.val <= 2048 ? tile.val : 2048}`;
+      inner.textContent = tile.val;
+
+      outer.appendChild(inner);
+
+      if (tile.isNew) {
+        outer.classList.add('tile-new');
+      } else if (tile.isMerged) {
+        outer.classList.add('tile-merged');
+      }
+
+      return outer;
+    }
+
+    // Redraws the board completely (used on load, resize, or undo)
+    function fullRender() {
+      tileContainer.innerHTML = '';
+      scoreDisplay.textContent = game.score;
+      bestScoreDisplay.textContent = game.bestScore;
+
+      game.tiles.forEach(tile => {
+        const node = renderTileNode(tile);
+        tileContainer.appendChild(node);
+      });
+
+      updateGameModals();
+    }
+
+    function executeMove(direction) {
+      if (isSlidingAnimation || game.isGameOver) return;
+
+      const result = game.move(direction);
+      if (!result || !result.moved) return;
+
+      isSlidingAnimation = true;
+
+      // 1. Move all existing tiles to new coordinates simultaneously (CSS transition handles glide)
+      game.tiles.forEach(tile => {
+        const el = document.getElementById(`tile-${tile.id}`);
+        if (el) {
+          const metrics = getCellMetrics(tile.r, tile.c);
+          el.style.transform = `translate3d(${metrics.x}px, ${metrics.y}px, 0)`;
+        }
+      });
+
+      // Play sound
+      if (result.maxMergedVal > 0) {
+        sound.merge(result.maxMergedVal);
+      } else {
+        sound.slide();
+      }
+
+      // 2. Once sliding finishes (120ms), remove deleted tiles, append merged and new tiles
+      setTimeout(() => {
+        // Remove tiles marked for deletion
+        game.tiles.filter(t => t.toDelete).forEach(t => {
+          const el = document.getElementById(`tile-${t.id}`);
+          if (el) el.remove();
+        });
+        game.tiles = game.tiles.filter(t => !t.toDelete);
+
+        // Append merged tiles with pulse pop
+        result.createdTiles.forEach(mTile => {
+          game.tiles.push(mTile);
+          const node = renderTileNode(mTile);
+          tileContainer.appendChild(node);
+        });
+
+        // Update score
+        game.score += result.scoreGain;
+        if (game.score > game.bestScore) {
+          game.bestScore = game.score;
+          localStorage.setItem('game1024_best', game.bestScore.toString());
+        }
+        scoreDisplay.textContent = game.score;
+        bestScoreDisplay.textContent = game.bestScore;
+
+        // Spawn a random new tile (2 or 4) with pop animation
+        const newTile = game.spawnTile();
+        if (newTile) {
+          const node = renderTileNode(newTile);
+          tileContainer.appendChild(node);
+        }
+
+        // Check 1024 Win Condition
+        if (!game.hasWon && !game.keepPlaying) {
+          const reached1024 = game.tiles.some(t => t.val >= 1024);
+          if (reached1024) {
+            game.hasWon = true;
+          }
+        }
+
+        // Check Game Over Condition
+        if (!game.canMove()) {
+          game.isGameOver = true;
+        }
+
+        updateGameModals();
+        isSlidingAnimation = false;
+      }, 125);
+    }
+
+    function updateGameModals() {
+      if (game.hasWon && !game.keepPlaying) {
+        sound.win();
+        modalIcon.textContent = '🏆';
+        modalTitle.textContent = '1024 달성!';
+        modalDesc.textContent = `축하합니다! 전설의 1024 타일을 완성하셨습니다. 점수: ${game.score}점`;
+        modalBtnKeepGoing.classList.remove('hidden');
+        modalBtnAction.textContent = '새 게임';
+        gameModal.classList.remove('opacity-0', 'pointer-events-none');
+      } else if (game.isGameOver) {
+        sound.gameOver();
+        modalIcon.textContent = '⚡';
+        modalTitle.textContent = '게임 오버';
+        modalDesc.textContent = `더 이상 결합할 수 있는 타일이 없습니다. 최종 점수: ${game.score}점`;
+        modalBtnKeepGoing.classList.add('hidden');
+        modalBtnAction.textContent = '다시 도전';
+        gameModal.classList.remove('opacity-0', 'pointer-events-none');
+      } else {
+        gameModal.classList.add('opacity-0', 'pointer-events-none');
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      let dir = null;
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          dir = 'up';
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          dir = 'down';
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          dir = 'left';
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          dir = 'right';
+          break;
+        case 'z':
+        case 'Z':
+          if (e.ctrlKey || e.metaKey) {
+            if (game.undo()) fullRender();
+          }
+          break;
+      }
+
+      if (dir) {
+        e.preventDefault();
+        executeMove(dir);
+      }
+    });
+
+    // Mobile Swipe Handler
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const boardWrapper = document.getElementById('game-board-wrapper');
+
+    boardWrapper.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    boardWrapper.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+      const threshold = 35;
+
+      if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        executeMove(dx > 0 ? 'right' : 'left');
+      } else {
+        executeMove(dy > 0 ? 'down' : 'up');
+      }
+    }, { passive: true });
+
+    // Directional Pad Buttons
+    document.querySelectorAll('.d-pad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        executeMove(btn.getAttribute('data-dir'));
+      });
+    });
+
+    // Control Buttons
+    btnUndo.addEventListener('click', () => {
+      if (game.undo()) {
+        gameModal.classList.add('opacity-0', 'pointer-events-none');
+        fullRender();
+      }
+    });
+
+    btnRestart.addEventListener('click', () => {
+      gameModal.classList.add('opacity-0', 'pointer-events-none');
+      game.reset();
+      fullRender();
+    });
+
+    modalBtnKeepGoing.addEventListener('click', () => {
+      game.keepPlaying = true;
+      gameModal.classList.add('opacity-0', 'pointer-events-none');
+    });
+
+    modalBtnAction.addEventListener('click', () => {
+      gameModal.classList.add('opacity-0', 'pointer-events-none');
+      game.reset();
+      fullRender();
+    });
+
+    btnSound.addEventListener('click', () => {
+      sound.enabled = !sound.enabled;
+      if (sound.enabled) {
+        iconSoundOn.classList.remove('hidden');
+        iconSoundOff.classList.add('hidden');
+        sound.ensureContext();
+      } else {
+        iconSoundOn.classList.add('hidden');
+        iconSoundOff.classList.remove('hidden');
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      fullRender();
+    });
+
+    window.onload = () => {
+      initGridSlots();
+      game.reset();
+      fullRender();
+    };
+  </script>
+</body>
+</html>
