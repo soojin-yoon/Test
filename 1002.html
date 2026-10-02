@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>상용 AI 안전 활용 Pay-Off Matrix</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #f1f5f9;
+    }
+    .matrix-grid {
+      background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .node-item {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .node-item:hover {
+      transform: scale(1.08) translateY(-2px);
+      z-index: 50;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+  <!-- Header Section -->
+  <header class="w-full max-w-7xl mb-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/80 pb-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-2">
+          <i class="fa-solid fa-chart-pie"></i> Strategic Prioritization
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+          상용 AI 안전 활용 전략 Pay-Off Matrix
+        </h1>
+        <p class="text-sm md:text-base text-slate-400 mt-1">
+          HMW: <span class="text-slate-200 font-medium">"어떻게 하면 직원들이 정보유출 위험을 최소화하면서 상용 AI를 안전하게 활용할 수 있을까?"</span>
+        </p>
+      </div>
+
+      <!-- Quick Filter -->
+      <div class="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 text-xs font-medium">
+        <span class="text-slate-400 px-2 font-semibold">필터:</span>
+        <button onclick="filterCategory('all')" class="filter-btn active px-3 py-1.5 rounded-lg bg-blue-600 text-white transition shadow-sm" data-cat="all">전체</button>
+        <button onclick="filterCategory('tech')" class="filter-btn px-3 py-1.5 rounded-lg text-slate-300 hover:bg-slate-700 transition" data-cat="tech">기술/인프라</button>
+        <button onclick="filterCategory('rule')" class="filter-btn px-3 py-1.5 rounded-lg text-slate-300 hover:bg-slate-700 transition" data-cat="rule">조직/제도</button>
+        <button onclick="filterCategory('people')" class="filter-btn px-3 py-1.5 rounded-lg text-slate-300 hover:bg-slate-700 transition" data-cat="people">사용자/교육</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="w-full max-w-7xl flex flex-col lg:flex-row gap-8 items-start">
+
+    <!-- Pay-Off Matrix 2x2 Canvas Container -->
+    <section class="w-full lg:w-7/12 flex flex-col items-center">
+      
+      <!-- Top Axis Indicator (Y: Impact High) -->
+      <div class="w-full flex items-center justify-center gap-2 py-2 text-emerald-400 font-bold text-sm tracking-wide">
+        <i class="fa-solid fa-arrow-up"></i>
+        <span>기대 및 파급효과 높음 (High Impact)</span>
+      </div>
+
+      <!-- The 2x2 Matrix Grid -->
+      <div class="relative w-full aspect-square max-w-[640px] bg-slate-900 border-2 border-slate-700 rounded-2xl p-4 matrix-grid flex flex-col justify-between shadow-2xl overflow-hidden">
+        
+        <!-- Background Quadrant Color Overlays -->
+        <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
+          <!-- Top-Left: Strategic Projects (High Impact, Low Ease) -->
+          <div class="bg-blue-500/5 border-r border-b border-dashed border-slate-700/80 p-3 flex flex-col justify-start">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-400/80 flex items-center gap-1.5">
+              <i class="fa-solid fa-chess-knight"></i> 전략적 핵심 과제 (Major Projects)
+            </span>
+            <span class="text-[11px] text-slate-500 mt-0.5">실행 난이도 높음 · 파급효과 큼</span>
+          </div>
+
+          <!-- Top-Right: Quick Wins (High Impact, High Ease) -->
+          <div class="bg-emerald-500/10 border-b border-dashed border-slate-700/80 p-3 flex flex-col justify-start">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt"></i> 즉시 추진 과제 (Quick Wins)
+            </span>
+            <span class="text-[11px] text-emerald-600/80 mt-0.5 font-medium">실행 용이 · 파급효과 큼 (최우선)</span>
+          </div>
+
+          <!-- Bottom-Left: Re-evaluate / Thankless (Low Impact, Low Ease) -->
+          <div class="bg-rose-500/5 border-r border-dashed border-slate-700/80 p-3 flex flex-col justify-end">
+            <span class="text-xs font-bold uppercase tracking-wider text-rose-400/70 flex items-center gap-1.5">
+              <i class="fa-solid fa-ban"></i> 재검토 / 지양 (Thankless Tasks)
+            </span>
+            <span class="text-[11px] text-slate-500 mt-0.5">노력 대비 실익 낮음 · 부작용 주의</span>
+          </div>
+
+          <!-- Bottom-Right: Low Hanging Fruit / Fill-ins (Low Impact, High Ease) -->
+          <div class="bg-amber-500/5 p-3 flex flex-col justify-end">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400/80 flex items-center gap-1.5">
+              <i class="fa-solid fa-screwdriver-wrench"></i> 단기 보완 과제 (Fill-ins)
+            </span>
+            <span class="text-[11px] text-slate-500 mt-0.5">실행 용이 · 점진적 개선</span>
+          </div>
+        </div>
+
+        <!-- Matrix Center Axis Marker -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-400 text-xs shadow-inner">
+            <i class="fa-solid fa-crosshairs"></i>
+          </div>
+        </div>
+
+        <!-- Interactive Placed Nodes Container (Absolute positions: % X, % Y from top-left) -->
+        <div id="nodes-container" class="absolute inset-0 p-8 pointer-events-auto">
+          <!-- Dynamically or statically placed project chips -->
+        </div>
+
+      </div>
+
+      <!-- Bottom Axis Indicator (Y: Impact Low & X: Ease Range) -->
+      <div class="w-full flex items-center justify-between px-6 pt-3 text-xs font-semibold text-slate-400">
+        <div class="flex items-center gap-1.5 text-rose-400">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>실행 용이성 낮음 (어려움/고비용)</span>
+        </div>
+        <div class="text-slate-500 flex items-center gap-1">
+          <i class="fa-solid fa-arrow-down"></i>
+          <span>파급효과 낮음 (Low Impact)</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-emerald-400">
+          <span>실행 용이성 높음 (쉬움/즉시 가능)</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Side: Details & Strategic Quadrant Cards -->
+    <section class="w-full lg:w-5/12 flex flex-col gap-4">
+      
+      <!-- Selected Item Detail Inspector Card -->
+      <div id="inspector-card" class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl transition-all">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-3">
+          <span class="text-xs font-semibold uppercase text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-blue-400"></i> 과제 상세 프로파일
+          </span>
+          <span id="insp-quadrant" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            Quick Win
+          </span>
+        </div>
+        <h3 id="insp-title" class="text-lg font-bold text-white mb-2">
+          업무별 표준 프롬프트 템플릿 배포
+        </h3>
+        <p id="insp-desc" class="text-sm text-slate-300 mb-4 leading-relaxed">
+          임직원이 기밀 정보를 직접 입력하지 않고도 안전하게 결과를 얻을 수 있는 검증된 표준 프롬프트 양식을 배포하고 우수사례를 전파합니다.
+        </p>
+        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/60 text-xs">
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/40">
+            <span class="text-slate-400 block mb-1">관점 분류</span>
+            <span id="insp-cat" class="text-slate-200 font-semibold flex items-center gap-1.5">
+              <i class="fa-solid fa-user-shield text-blue-400"></i> 사용자/프로세스
+            </span>
+          </div>
+          <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/40">
+            <span class="text-slate-400 block mb-1">핵심 레퍼런스</span>
+            <span id="insp-source" class="text-slate-200 font-semibold truncate block">
+              만다라트 #7 / 8관점
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Quadrants Summary Tabs -->
+      <div class="space-y-3">
+        <!-- 1. Quick Wins -->
+        <div class="bg-slate-800/60 hover:bg-slate-800 border-l-4 border-emerald-500 rounded-r-xl p-4 transition border-slate-700/50">
+          <div class="flex items-center justify-between mb-1.5">
+            <h4 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+              <i class="fa-solid fa-bolt"></i> 1. Quick Wins (최우선 즉시 실행)
+            </h4>
+            <span class="text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">Phase 1</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            비용과 기술 장벽은 낮으면서 보안 사고 예방 효과가 즉각적인 과제. 가이드라인 공지, 데이터 3단계 분류 수칙, 표준 프롬프트 배포, 기업용 엔터프라이즈 계정(학습 미사용 옵션) 도입.
+          </p>
+        </div>
+
+        <!-- 2. Major Projects -->
+        <div class="bg-slate-800/60 hover:bg-slate-800 border-l-4 border-blue-500 rounded-r-xl p-4 transition border-slate-700/50">
+          <div class="flex items-center justify-between mb-1.5">
+            <h4 class="text-sm font-bold text-blue-400 flex items-center gap-2">
+              <i class="fa-solid fa-chess-knight"></i> 2. Major Projects (전략적 투자)
+            </h4>
+            <span class="text-[11px] font-semibold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">Phase 2</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            구축 예산과 시간이 소요되나 근본적인 보안 체계를 완성하는 과제. AI 전용 실시간 모니터링/DLP 필터링, 안전한 API 게이트웨이, 중요 업무용 폐쇄형 sLLM(구축형) 도입.
+          </p>
+        </div>
+
+        <!-- 3. Fill-ins -->
+        <div class="bg-slate-800/60 hover:bg-slate-800 border-l-4 border-amber-500 rounded-r-xl p-4 transition border-slate-700/50">
+          <div class="flex items-center justify-between mb-1.5">
+            <h4 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+              <i class="fa-solid fa-screwdriver-wrench"></i> 3. Fill-ins (단기 보완/일상화)
+            </h4>
+            <span class="text-[11px] font-semibold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">상시 운영</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            큰 리소스 없이 점진적 보안 태세를 다지는 일상적 관리 과제. 불필요 라이선스 회수, 타 기관 보안 사례 벤치마킹, 접속 로그 주기적 점검, 사내 질의 채널 운영.
+          </p>
+        </div>
+
+        <!-- 4. Re-evaluate / Avoid -->
+        <div class="bg-slate-800/60 hover:bg-slate-800 border-l-4 border-rose-500 rounded-r-xl p-4 transition border-slate-700/50">
+          <div class="flex items-center justify-between mb-1.5">
+            <h4 class="text-sm font-bold text-rose-400 flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation"></i> 4. Thankless / Re-evaluate (재검토·지양)
+            </h4>
+            <span class="text-[11px] font-semibold bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full">지양/대체</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            실행 난이도는 극도로 높으나 생산성을 심각하게 저해하거나 실효성이 떨어지는 방식. 전면적인 상용 AI 사용 금지, 모든 프롬프트 건별 다단계 사전 결재제, 벤더 소스코드 전수 검증 요구.
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Detailed Data Table Section -->
+  <section class="w-full max-w-7xl mt-12 bg-slate-800/50 border border-slate-700/70 rounded-2xl p-6 shadow-xl">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-table-list text-blue-400"></i> 첨부 자료 기반 과제별 평가 분석표
+        </h3>
+        <p class="text-xs text-slate-400 mt-1">첨부 만다라트 8대 영역 및 64개 세부 항목을 종합하여 도출한 4대 사분면 매핑 결과입니다.</p>
+      </div>
+      <div class="text-xs text-slate-400 flex items-center gap-4">
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Quick Win</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Major Project</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Fill-in</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Re-evaluate</span>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-300">
+        <thead class="bg-slate-900/80 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
+          <tr>
+            <th class="py-3 px-4">과제명</th>
+            <th class="py-3 px-3">관점 분류</th>
+            <th class="py-3 px-3 text-center">실행 용이성</th>
+            <th class="py-3 px-3 text-center">파급효과</th>
+            <th class="py-3 px-4">사분면 분류</th>
+            <th class="py-3 px-4">추진 전략 및 핵심 기대사항</th>
+          </tr>
+        </thead>
+        <tbody id="table-body" class="divide-y divide-slate-700/50">
+          <!-- Dynamically populated rows -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Script for Interactive Visualization -->
+  <script>
+    // Dataset extracted directly from attachments (1002-1, 1002-2, 1002-3, Mandai-Art)
+    // ease: 0~100 (0: Very Hard/Low Ease, 100: Very Easy/High Ease)
+    // impact: 0~100 (0: Very Low Impact, 100: Very High Impact)
+    const taskData = [
+      // 1. Quick Wins (High Impact, High Ease) -> top-right (x: 55~90, y: 55~90)
+      {
+        id: 1,
+        title: "데이터 3단계 분류 및 입력 금지 목록 수칙화",
+        cat: "rule",
+        catName: "조직/제도 · 데이터",
+        ease: 84,
+        impact: 86,
+        quad: "Quick Win",
+        source: "만다라트 #1 / 1002-2 데이터 분류",
+        desc: "공개·내부·기밀 3단계 정의 및 개인정보/핵심 소스코드 등 AI 입력 금지 체크리스트를 수립하여 현업에 즉시 공포합니다."
+      },
+      {
+        id: 2,
+        title: "표준 안전 프롬프트 템플릿 배포",
+        cat: "people",
+        catName: "사용자 · 프로세스",
+        ease: 78,
+        impact: 82,
+        quad: "Quick Win",
+        source: "만다라트 #7 / 1002-3 사용자 관점",
+        desc: "원문 기밀을 직접 넣지 않고 가공/요약형으로 질의할 수 있는 업무별 표준 프롬프트 서식 및 활용 우수사례를 공유합니다."
+      },
+      {
+        id: 3,
+        title: "상용 AI 서비스 사전 화이트리스트 지정",
+        cat: "rule",
+        catName: "조직/제도 · 기술",
+        ease: 82,
+        impact: 75,
+        quad: "Quick Win",
+        source: "만다라트 #8 / 1002-2 승인된 도구",
+        desc: "무분별한 비인가 AI 사용을 막고, 데이터 학습 제외(Zero Data Retention) 조항이 확인된 유료 기업용 도구만 승인합니다."
+      },
+      {
+        id: 4,
+        title: "사례 중심 5분 보안 교육 & 질의 채널",
+        cat: "people",
+        catName: "사용자 · 교육",
+        ease: 88,
+        impact: 72,
+        quad: "Quick Win",
+        source: "1002-2 교육·문화 / 1002-3",
+        desc: "실제 유출 사고 사례 중심의 마이크로 러닝과 '애매하면 먼저 물어보는' 전용 헬프데스크 채널을 개설합니다."
+      },
+      {
+        id: 5,
+        title: "입력 전 수동 마스킹(비식별화) 수칙 안내",
+        cat: "people",
+        catName: "사용자 · 데이터",
+        ease: 70,
+        impact: 78,
+        quad: "Quick Win",
+        source: "1002-2 비식별화 / Mandai-Art",
+        desc: "이름·주민번호·금액 등 민감 변수를 가명/더미 데이터(OOO, XXX)로 치환 후 입력하도록 강제 가이드합니다."
+      },
+
+      // 2. Major Projects (High Impact, Low Ease) -> top-left (x: 10~45, y: 55~95)
+      {
+        id: 6,
+        title: "AI 전용 실시간 모니터링 & 프롬프트 DLP 차단",
+        cat: "tech",
+        catName: "기술 · 인프라",
+        ease: 32,
+        impact: 92,
+        quad: "Major Project",
+        source: "만다라트 #3 / 1002-2 기술적 통제",
+        desc: "클립보드 붙여넣기 및 프롬프트 전송 단계에서 기밀·개인정보 키워드를 실시간 감지하여 자동 차단하는 DLP 솔루션을 구축합니다."
+      },
+      {
+        id: 7,
+        title: "망분리 맞춤형 안전 연계 API 게이트웨이",
+        cat: "tech",
+        catName: "기술 · 인프라",
+        ease: 24,
+        impact: 88,
+        quad: "Major Project",
+        source: "만다라트 #4 / 1002-3 환경 관점",
+        desc: "내부망과 외부 상용 AI 간 안전한 프록시 중계 게이트웨이를 구축하여 통제된 채널로만 통신을 허용하고 전문을 로깅합니다."
+      },
+      {
+        id: 8,
+        title: "핵심 민감 업무용 사내 구축형 sLLM 도입",
+        cat: "tech",
+        catName: "기술 · 경제",
+        ease: 15,
+        impact: 95,
+        quad: "Major Project",
+        source: "만다라트 #5 / 1002-3 기술 관점",
+        desc: "외부 유출이 절대 불가한 핵심 기밀 및 법률/연구 분석을 위해 폐쇄망 내부 전용 소형 언어모델(sLLM) 인프라를 구축합니다."
+      },
+      {
+        id: 9,
+        title: "자동 비식별화/익명화 인라인 도구 개발",
+        cat: "tech",
+        catName: "기술 · 데이터",
+        ease: 38,
+        impact: 85,
+        quad: "Major Project",
+        source: "만다라트 #2 / 1002-1",
+        desc: "사용자가 장문 문서를 업로드하거나 붙여넣을 때 시스템이 자동으로 엔티티(NER)를 탐지해 가명화해주는 시스템을 도입합니다."
+      },
+      {
+        id: 10,
+        title: "전담 AI 거버넌스 조직 및 정기 위험 감사 체계",
+        cat: "rule",
+        catName: "조직/제도",
+        ease: 42,
+        impact: 78,
+        quad: "Major Project",
+        source: "1002-3 조직 관점 / 1002-2 거버넌스",
+        desc: "AI 윤리 및 보안 관리 책임자를 지정하고 정기적인 위험도 평가, 규정 위반 모니터링 체계를 확립합니다."
+      },
+
+      // 3. Fill-ins (Low Impact, High Ease) -> bottom-right (x: 55~92, y: 15~48)
+      {
+        id: 11,
+        title: "개인 계정 접속 차단 및 사내 SSO 단일화",
+        cat: "tech",
+        catName: "기술 · 프로세스",
+        ease: 75,
+        impact: 45,
+        quad: "Fill-in",
+        source: "1002-2 승인된 도구 / 1002-3",
+        desc: "사내 네트워크에서 개인 구글/MS 계정으로의 상용 AI 로그인을 차단하고 회사 도메인 기반 SSO 인증만 허용합니다."
+      },
+      {
+        id: 12,
+        title: "불필요 라이선스 회수 및 비용 절감 관리",
+        cat: "rule",
+        catName: "경제/비용",
+        ease: 85,
+        impact: 38,
+        quad: "Fill-in",
+        source: "1002-3 경제(비용) 관점",
+        desc: "미사용 계정을 주기적으로 회수하고 엔터프라이즈 요금제 풀을 효율적으로 재배분하여 예산 낭비를 방지합니다."
+      },
+      {
+        id: 13,
+        title: "타 기관 및 공공부문 보안 레퍼런스 벤치마킹",
+        cat: "people",
+        catName: "협력/생태계",
+        ease: 90,
+        impact: 40,
+        quad: "Fill-in",
+        source: "1002-3 협력(생태계) 관점",
+        desc: "KISA 등 정부 및 타 공공기관의 AI 활용 지침 및 사고 사례집을 수집하여 사내 보안 가이드에 보충 반영합니다."
+      },
+      {
+        id: 14,
+        title: "보안 서약서 징구 및 위반 시 제재 규정 공지",
+        cat: "rule",
+        catName: "조직/제도",
+        ease: 80,
+        impact: 48,
+        quad: "Fill-in",
+        source: "1002-3 조직 관점",
+        desc: "기밀 유출 고의/과실 시 인사위원회 회부 등 페널티 규정을 사규에 명문화하여 경각심을 부여합니다."
+      },
+
+      // 4. Thankless / Re-evaluate (Low Impact, Low Ease) -> bottom-left (x: 12~42, y: 10~45)
+      {
+        id: 15,
+        title: "상용 AI 전면 사용 금지 조치",
+        cat: "rule",
+        catName: "조직/제도 (극단적)",
+        ease: 35,
+        impact: 22,
+        quad: "Re-evaluate",
+        source: "Mandai-Art #1 (상용 AI 사용 금지)",
+        desc: "전면 금지 시 직원들이 개인 스마트폰이나 사설망을 이용하는 '그림자 AI' 현상이 발생해 오히려 통제 불능 및 생산성 급감이 초래됩니다."
+      },
+      {
+        id: 16,
+        title: "모든 프롬프트 건별 다단계 사전 결재제",
+        cat: "rule",
+        catName: "프로세스",
+        ease: 20,
+        impact: 30,
+        quad: "Re-evaluate",
+        source: "1002-3 프로세스 (승인 절차 과다)",
+        desc: "모든 질의마다 관리자 승인을 받도록 할 경우 업무 병목이 극심해져 AI 도입의 민첩성 및 효용이 전면 상실됩니다."
+      },
+      {
+        id: 17,
+        title: "글로벌 상용 벤더 소스코드 전수 검증 요구",
+        cat: "tech",
+        catName: "협력 · 기술",
+        ease: 10,
+        impact: 18,
+        quad: "Re-evaluate",
+        source: "1002-3 협력/생태계 (비현실적 검증)",
+        desc: "OpenAI, Google 등 해외 빅테크의 핵심 지적재산권 모델 자체를 직접 검증하는 것은 협상력상 불가능하며 실익이 없습니다."
+      }
+    ];
+
+    // Current category filter
+    let currentFilter = 'all';
+
+    function getQuadrantColor(quad) {
+      switch (quad) {
+        case 'Quick Win':
+          return { bg: 'bg-emerald-500', border: 'border-emerald-400', text: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+        case 'Major Project':
+          return { bg: 'bg-blue-500', border: 'border-blue-400', text: 'text-blue-400', badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+        case 'Fill-in':
+          return { bg: 'bg-amber-500', border: 'border-amber-400', text: 'text-amber-400', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+        case 'Re-evaluate':
+          return { bg: 'bg-rose-500', border: 'border-rose-400', text: 'text-rose-400', badge: 'bg-rose-500/20 text-rose-400 border-rose-500/30' };
+        default:
+          return { bg: 'bg-slate-500', border: 'border-slate-400', text: 'text-slate-400', badge: 'bg-slate-500/20 text-slate-400 border-slate-500/30' };
+      }
+    }
+
+    function renderMatrix() {
+      const container = document.getElementById('nodes-container');
+      container.innerHTML = '';
+
+      taskData.forEach((task) => {
+        // Filter check
+        const isVisible = (currentFilter === 'all') || (task.cat === currentFilter);
+        const qColor = getQuadrantColor(task.quad);
+
+        // Convert coordinates:
+        // x: ease (0% left ~ 100% right)
+        // y: impact (0% bottom ~ 100% top) -> in CSS top = 100 - impact %
+        const leftPercent = task.ease;
+        const topPercent = 100 - task.impact;
+
+        const node = document.createElement('div');
+        node.className = `node-item absolute cursor-pointer flex items-center justify-center ${isVisible ? 'opacity-100' : 'opacity-15 pointer-events-none'}`;
+        node.style.left = `${leftPercent}%`;
+        node.style.top = `${topPercent}%`;
+        node.style.transform = 'translate(-50%, -50%)';
+
+        node.innerHTML = `
+          <div class="relative group">
+            <div class="w-7 h-7 md:w-8 md:h-8 rounded-full ${qColor.bg} text-white font-black text-[11px] md:text-xs flex items-center justify-center shadow-lg border-2 ${qColor.border}">
+              ${task.id}
+            </div>
+            <!-- Quick Tooltip on Hover -->
+            <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none">
+              <div class="bg-slate-950 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap border border-slate-700 shadow-xl max-w-xs text-center">
+                <span class="block text-[9px] text-slate-400 uppercase tracking-tight">${task.quad}</span>
+                ${task.title}
+              </div>
+              <div class="w-2 h-2 bg-slate-950 border-r border-b border-slate-700 rotate-45 -mt-1"></div>
+            </div>
+          </div>
+        `;
+
+        node.onclick = () => selectItem(task);
+        container.appendChild(node);
+      });
+    }
+
+    function selectItem(task) {
+      const qColor = getQuadrantColor(task.quad);
+      document.getElementById('insp-title').innerText = `#${task.id}. ${task.title}`;
+      document.getElementById('insp-desc').innerText = task.desc;
+      document.getElementById('insp-cat').innerHTML = `<i class="fa-solid fa-tag ${qColor.text}"></i> ${task.catName}`;
+      document.getElementById('insp-source').innerText = task.source;
+      
+      const quadBadge = document.getElementById('insp-quadrant');
+      quadBadge.innerText = task.quad;
+      quadBadge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold border ${qColor.badge}`;
+
+      // Highlight row in table
+      document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('bg-slate-700/50'));
+      const row = document.getElementById(`row-${task.id}`);
+      if (row) {
+        row.classList.add('bg-slate-700/50');
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      taskData.forEach((task) => {
+        const qColor = getQuadrantColor(task.quad);
+        const tr = document.createElement('tr');
+        tr.id = `row-${task.id}`;
+        tr.className = "hover:bg-slate-800/80 transition cursor-pointer";
+        tr.onclick = () => selectItem(task);
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-200">
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full ${qColor.bg} text-white text-[10px] mr-2">
+              ${task.id}
+            </span>
+            ${task.title}
+          </td>
+          <td class="py-3 px-3 text-slate-400">${task.catName}</td>
+          <td class="py-3 px-3 text-center">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold ${task.ease >= 60 ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 bg-slate-800'}">
+              ${task.ease}%
+            </span>
+          </td>
+          <td class="py-3 px-3 text-center">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold ${task.impact >= 60 ? 'text-blue-400 bg-blue-500/10' : 'text-slate-400 bg-slate-800'}">
+              ${task.impact}%
+            </span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${qColor.badge}">
+              ${task.quad}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-slate-400 leading-snug">
+            ${task.desc}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterCategory(cat) {
+      currentFilter = cat;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-cat') === cat) {
+          btn.className = "filter-btn active px-3 py-1.5 rounded-lg bg-blue-600 text-white transition shadow-sm";
+        } else {
+          btn.className = "filter-btn px-3 py-1.5 rounded-lg text-slate-300 hover:bg-slate-700 transition";
+        }
+      });
+      renderMatrix();
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      renderMatrix();
+      renderTable();
+      // Default selection to first item
+      selectItem(taskData[0]);
+    });
+  </script>
+</body>
+</html>
